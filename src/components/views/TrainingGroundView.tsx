@@ -14,24 +14,79 @@ import {
   AlertCircle,
   Plus,
   Share2,
+  AlertTriangle,
+  ZapOff,
+  ShieldAlert,
+  Sliders,
 } from 'lucide-react';
 import { TrainingRun } from '../../types';
+import { ToastAlert, AlertThresholdSettings } from '../../types/toast';
 import { LossChart } from '../LossChart';
 
 interface TrainingGroundViewProps {
   runs: TrainingRun[];
   onOpenNewRunModal: () => void;
   onSelectRunForExport: (run: TrainingRun) => void;
+  onTriggerAlert: (alert: ToastAlert) => void;
+  onOpenAlertsModal: () => void;
+  thresholds: AlertThresholdSettings;
 }
 
 export const TrainingGroundView: React.FC<TrainingGroundViewProps> = ({
   runs,
   onOpenNewRunModal,
   onSelectRunForExport,
+  onTriggerAlert,
+  onOpenAlertsModal,
+  thresholds,
 }) => {
   const [selectedRun, setSelectedRun] = useState<TrainingRun>(runs[0]);
   const [activeTab, setActiveTab] = useState<'metrics' | 'hyperparameters' | 'logs'>('metrics');
   const [isSimulating, setIsSimulating] = useState<boolean>(true);
+
+  const handleSimulateVramSpike = () => {
+    setSelectedRun((prev) => ({
+      ...prev,
+      gpuMemoryUsagePercent: 96.8,
+    }));
+    onTriggerAlert({
+      id: `vram-alert-${Date.now()}`,
+      type: 'vram_exceeded',
+      severity: 'critical',
+      title: 'GPU VRAM Limit Exceeded (OOM Risk)',
+      message: `Training run '${selectedRun.name}' GPU memory reached 96.8%, exceeding critical threshold of ${thresholds.vramCriticalPercent}%. Immediate action recommended to avoid CUDA Out-Of-Memory failure.`,
+      runId: selectedRun.id,
+      runName: selectedRun.name,
+      metricValue: '96.8% VRAM',
+      baselineThreshold: `Max ${thresholds.vramCriticalPercent}% SLA`,
+      timestamp: new Date().toLocaleTimeString(),
+      actionLabel: 'Enable Activation Offload',
+      actionType: 'enable_gradient_checkpointing',
+      dismissible: true,
+    });
+  };
+
+  const handleSimulateThroughputDrop = () => {
+    setSelectedRun((prev) => ({
+      ...prev,
+      throughputTokensPerSec: 680,
+    }));
+    onTriggerAlert({
+      id: `tp-alert-${Date.now()}`,
+      type: 'throughput_drop',
+      severity: 'warning',
+      title: 'GPU Throughput Dropped Below Baseline SLA',
+      message: `Throughput dropped to 680 tok/s on '${selectedRun.name}', falling below baseline of ${thresholds.throughputBaselineTokPerSec} tok/s. Host-to-device IO bottleneck or InfiniBand congestion detected.`,
+      runId: selectedRun.id,
+      runName: selectedRun.name,
+      metricValue: '680 tok/s',
+      baselineThreshold: `Min ${thresholds.throughputBaselineTokPerSec} tok/s`,
+      timestamp: new Date().toLocaleTimeString(),
+      actionLabel: 'Optimize Batch Pre-fetch',
+      actionType: 'reduce_batch_size',
+      dismissible: true,
+    });
+  };
 
   // Auto-simulate step progression if the selected run is currently "running"
   useEffect(() => {
@@ -241,6 +296,80 @@ export const TrainingGroundView: React.FC<TrainingGroundViewProps> = ({
                   Ep {selectedRun.currentEpoch} / {selectedRun.totalEpochs}
                 </span>
                 <span className="text-[10px] text-slate-400">Step {selectedRun.currentStep} of {selectedRun.totalSteps}</span>
+              </div>
+            </div>
+
+            {/* Resource Health Watchdog & Toast Simulation Bar */}
+            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 font-mono text-xs">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    selectedRun.gpuMemoryUsagePercent > thresholds.vramCriticalPercent
+                      ? 'bg-red-400 animate-ping'
+                      : selectedRun.throughputTokensPerSec < thresholds.throughputBaselineTokPerSec
+                      ? 'bg-amber-400 animate-pulse'
+                      : 'bg-emerald-400'
+                  }`}
+                ></div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-200 text-[11px]">GPU Resource Health SLA Monitor</span>
+                    <span
+                      className={`text-[9px] px-1.5 py-0.2 rounded border font-semibold ${
+                        selectedRun.gpuMemoryUsagePercent > thresholds.vramCriticalPercent
+                          ? 'bg-red-950/60 border-red-500/40 text-red-300'
+                          : selectedRun.throughputTokensPerSec < thresholds.throughputBaselineTokPerSec
+                          ? 'bg-amber-950/60 border-amber-500/40 text-amber-300'
+                          : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+                      }`}
+                    >
+                      {selectedRun.gpuMemoryUsagePercent > thresholds.vramCriticalPercent
+                        ? 'CRITICAL MEMORY BREACH'
+                        : selectedRun.throughputTokensPerSec < thresholds.throughputBaselineTokPerSec
+                        ? 'THROUGHPUT DEGRADED'
+                        : 'HEALTHY'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
+                    <span>
+                      VRAM: <strong className={selectedRun.gpuMemoryUsagePercent > thresholds.vramCriticalPercent ? 'text-red-400' : 'text-slate-200'}>{selectedRun.gpuMemoryUsagePercent}%</strong> (Limit: {thresholds.vramCriticalPercent}%)
+                    </span>
+                    <span>·</span>
+                    <span>
+                      Throughput: <strong className={selectedRun.throughputTokensPerSec < thresholds.throughputBaselineTokPerSec ? 'text-amber-400' : 'text-slate-200'}>{selectedRun.throughputTokensPerSec} tok/s</strong> (Min: {thresholds.throughputBaselineTokPerSec} tok/s)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Toast Alert Simulation & SLA Config Buttons */}
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleSimulateVramSpike}
+                  className="px-2.5 py-1 rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 text-[10px] flex items-center gap-1 transition-all active:scale-95"
+                  title="Simulate high memory allocation triggering critical OOM toast notification"
+                >
+                  <AlertTriangle className="w-3 h-3 text-red-400" />
+                  <span>Test VRAM Alert</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSimulateThroughputDrop}
+                  className="px-2.5 py-1 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-[10px] flex items-center gap-1 transition-all active:scale-95"
+                  title="Simulate sudden speed degradation triggering throughput toast notification"
+                >
+                  <ZapOff className="w-3 h-3 text-amber-400" />
+                  <span>Test Throughput Alert</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenAlertsModal}
+                  className="p-1 rounded-lg border border-slate-700 bg-slate-900 text-slate-400 hover:text-slate-200 transition-colors"
+                  title="Configure alert thresholds and history"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 

@@ -8,20 +8,25 @@ import {
   ExternalLink,
   ShieldCheck,
   Sparkles,
+  Bell,
 } from 'lucide-react';
 
 interface HeaderProps {
   onNewRunClick: () => void;
   onHfTokenClick: () => void;
+  onOpenAlertsClick: () => void;
   activeRunCount: number;
   hfTokenVerified: boolean;
+  alertCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onNewRunClick,
   onHfTokenClick,
+  onOpenAlertsClick,
   activeRunCount,
   hfTokenVerified,
+  alertCount,
 }) => {
   return (
     <header className="h-16 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-6 flex items-center justify-between z-30 sticky top-0">
@@ -73,6 +78,20 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Actions */}
       <div className="flex items-center gap-3">
+        {/* Resource Alert Center Bell */}
+        <button
+          onClick={onOpenAlertsClick}
+          className="relative p-2 rounded-lg border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-slate-100 hover:border-slate-700 transition-all"
+          title="Resource Health & Toast Alerts Center"
+        >
+          <Bell className="w-4 h-4 text-slate-300" />
+          {alertCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-slate-950 font-mono text-[9px] font-extrabold flex items-center justify-center animate-pulse">
+              {alertCount > 9 ? '9+' : alertCount}
+            </span>
+          )}
+        </button>
+
         {/* HF Gated Token Button */}
         <button
           onClick={onHfTokenClick}
