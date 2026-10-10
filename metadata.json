@@ -1,0 +1,6 @@
+{
+  "name": "GemmaForge — LLM Model Forge & Training Ground for Gemma",
+  "description": "Production-grade MLOps platform and training ground for fine-tuning, auto-tuning, evaluating, quantizing, and deploying Google Gemma models.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
