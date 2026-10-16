@@ -50,8 +50,17 @@ export const LossChart: React.FC<LossChartProps> = ({
     return height - padding.bottom - ((val - minLoss) / (maxLoss - minLoss)) * (height - padding.top - padding.bottom);
   };
 
-  const trainPoints = data.map((d) => `${scaleX(d.step)},${scaleY(d.trainLoss)}`).join(' ');
-  const evalPoints = data.map((d) => `${scaleX(d.step)},${scaleY(d.evalLoss)}`).join(' ');
+  const len = data.length;
+  const trainPointsArr = new Array(len);
+  const evalPointsArr = new Array(len);
+  for (let i = 0; i < len; i++) {
+    const d = data[i];
+    const x = scaleX(d.step);
+    trainPointsArr[i] = `${x},${scaleY(d.trainLoss)}`;
+    evalPointsArr[i] = `${x},${scaleY(d.evalLoss)}`;
+  }
+  const trainPoints = trainPointsArr.join(' ');
+  const evalPoints = evalPointsArr.join(' ');
 
   const activePoint = hoverIndex !== null ? data[hoverIndex] : data[data.length - 1];
 
