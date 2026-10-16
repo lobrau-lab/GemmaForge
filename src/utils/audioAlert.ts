@@ -1,7 +1,13 @@
 // Web Audio API subtle synth beeps for critical GPU alerts
+declare global {
+  interface Window {
+    webkitAudioContext: typeof AudioContext;
+  }
+}
+
 export const playAlertSound = (severity: 'critical' | 'warning' | 'info' | 'success') => {
   try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return;
 
     const ctx = new AudioContextClass();
