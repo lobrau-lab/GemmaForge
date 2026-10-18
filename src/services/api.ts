@@ -88,6 +88,11 @@ export interface ChatResponse {
   };
 }
 
+export interface ChatMessagePayload {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
 export const apiService = {
   async getClusterStatus() {
     try {
@@ -274,7 +279,7 @@ export const apiService = {
     };
   },
 
-  async sendPlaygroundChat(payload: { messages: any[]; systemInstruction?: string; temperature?: number; modelVariant?: string }) {
+  async sendPlaygroundChat(payload: { messages: ChatMessagePayload[]; systemInstruction?: string; temperature?: number; modelVariant?: string }) {
     try {
       const res = await fetch('/api/gemini/chat', {
         method: 'POST',
