@@ -23,7 +23,7 @@ export const SyntheticDataModal: React.FC<SyntheticDataModalProps> = ({
   onDatasetCreated,
 }) => {
   const [domain, setDomain] = useState<string>('Distributed Systems & Concurrency in Rust');
-  const [taskType, setTaskType] = useState<string>('SFT (Instruction-Response)');
+  const [taskType, setTaskType] = useState<DatasetItem['taskType']>('SFT (Instruction)');
   const [targetModel, setTargetModel] = useState<string>('google/gemma-2-9b-it');
   const [sampleCount, setSampleCount] = useState<number>(3);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -59,7 +59,7 @@ export const SyntheticDataModal: React.FC<SyntheticDataModalProps> = ({
       id: `ds-syn-${Date.now()}`,
       name: `gemma-synthetic-${domain.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 24)}`,
       format: 'Synthetic',
-      taskType: taskType as any,
+      taskType: taskType,
       samplesCount: generatedResult.samples.length * 100, // scaled representative size
       tokenCount: generatedResult.samples.reduce((acc, s) => acc + (s.tokenCountEstimate || 220), 0) * 100,
       sizeMB: 3.2,
@@ -115,10 +115,10 @@ export const SyntheticDataModal: React.FC<SyntheticDataModalProps> = ({
                 <label className="text-[10px] text-slate-400 block mb-1">Dataset Task Type:</label>
                 <select
                   value={taskType}
-                  onChange={(e) => setTaskType(e.target.value)}
+                  onChange={(e) => setTaskType(e.target.value as DatasetItem['taskType'])}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-amber-500/50"
                 >
-                  <option value="SFT (Instruction-Response)">SFT (Instruction-Response)</option>
+                  <option value="SFT (Instruction)">SFT (Instruction-Response)</option>
                   <option value="DPO (Preference)">DPO (Preference)</option>
                   <option value="Distillation">Knowledge Distillation</option>
                 </select>
